@@ -1,0 +1,242 @@
+GodotSim 🎮📊
+A real-time, animated Discrete Event Simulator built inside the Godot Game Engine.
+
+GodotSim integrates SimSharp (a .NET discrete-event simulation library) with Godot 4 (C# / Mono) to produce an open-source simulation tool that combines rigorous simulation logic with real-time visual feedback — something most commercial DES platforms (Arena, SIMUL8, AnyLogic) do not offer at zero cost.
+
+🎓 Developed as an MSc Business Analytics dissertation project at the University of Surrey (Sept 2025).
+Supervisor: Dr. Wolfgang Garn
+
+
+🖥️ Demo
+UI Controls
+Agent Animation
+CSV Output
+Configure agents, trials, speed
+Animated agents flow: Spawn → Queue → Server → Exit
+Per-trial metrics saved automatically
+
+
+
+🔍 What It Does
+GodotSim simulates an M/M/1 queue (single-server queueing system) and animates the results in real time inside a Godot scene. Key capabilities:
+
+Configurable parameters — arrival rate (λ), service rate (μ), number of agents, trial runs, animation speed
+Batch trial support — run N simulations back-to-back; aggregated statistics across all trials
+Real-time animation — agents spawn, queue, get served, and exit with smooth movement driven by actual simulation timestamps
+Automatic CSV logging — two output files generated per session:
+output_events.csv — per-agent timestamps (Arrival, QueueEnter, ServiceStart, Leave)
+output_summary.csv — per-trial KPIs (λ, μ, ρ, Avg Wait, Avg System Time, Utilisation, Runtime)
+Performance benchmarked against SimPy (Python) — GodotSim is competitive and faster than text-only tools, with modest overhead from animation rendering
+
+
+🏗️ Architecture
+┌─────────────────────────────────────────────────┐
+
+│                   Godot Engine                  │
+
+│                                                 │
+
+│  ┌──────────────┐     ┌───────────────────────┐ │
+
+│  │ SimulationUi │────▶│   SimSharpEngine.cs   │ │
+
+│  │     .cs      │     │  (DES Logic / M/M/1)  │ │
+
+│  └──────────────┘     └──────────┬────────────┘ │
+
+│         │                        │               │
+
+│         │              EventLog (List<AgentEvent>)
+
+│         │                        │               │
+
+│         ▼                        ▼               │
+
+│  ┌──────────────┐     ┌───────────────────────┐ │
+
+│  │  CSVLogger   │     │  AnimationManager.cs  │ │
+
+│  │  (output)    │     │  (Visual Playback)    │ │
+
+│  └──────────────┘     └───────────────────────┘ │
+
+└─────────────────────────────────────────────────┘
+
+         ▲
+
+         │ Embedded source (not DLL)
+
+┌────────────────────┐
+
+│   SimSharp/        │
+
+│  (simulation core) │
+
+└────────────────────┘
+Key Design Decision
+SimSharp's source files are embedded directly into the Godot project rather than referenced as an external DLL. This avoids .NET assembly compatibility issues between SimSharp's build targets and Godot Mono, and keeps the project fully self-contained.
+
+
+📁 Project Structure
+godotsim/
+
+├── scripts/
+
+│   ├── SimSharpEngine.cs     # Core DES logic — M/M/1 queue, monitors, event log
+
+│   ├── AnimationManager.cs   # Godot Node2D — animates agents from EventLog
+
+│   ├── SimulationUi.cs       # UI controller — wires inputs to engine and logger
+
+│   ├── CSVLogger.cs          # Writes output_events.csv and output_summary.csv
+
+│   └── AgentEvent.cs         # Data class — per-agent timestamps
+
+├── SimSharp/                 # SimSharp source (embedded, not DLL)
+
+│   ├── Core/                 # Simulation environment, events, resources
+
+│   ├── Analysis/             # SampleMonitor, TimeSeriesMonitor
+
+│   ├── Collections/          # Priority queue internals
+
+│   └── Random/               # PCG random distributions
+
+├── scenes/
+
+│   ├── Main.tscn             # Root scene (UI entry point)
+
+│   ├── sim_scene.tscn        # Animation scene (spawns agents)
+
+│   └── agent.tscn            # Individual agent node
+
+├── GodotSim.csproj
+
+├── GodotSim.sln
+
+└── icon.svg
+
+
+⚙️ Requirements
+Dependency
+Version
+Godot Engine (Mono / C#)
+4.x
+.NET SDK
+6.0 or later
+SimSharp
+Embedded (source included)
+
+
+No NuGet packages or external DLLs required — everything runs from source.
+
+
+🚀 Getting Started
+1. Clone the repo
+git clone https://github.com/<deepanshu2singh>/godotsim.git
+
+cd godotsim
+2. Open in Godot
+Open Godot 4 (Mono/C# build)
+Select Import Project and point it at the godotsim/ folder
+Godot will build the C# solution automatically on first open
+3. Run the simulation
+Press F5 or click Play in the Godot editor
+In the UI:
+Set Agent Count (e.g. 50)
+Set Trial Runs (e.g. 10)
+Adjust Speed slider (1x–5x)
+Click Start
+4. Find your output files
+Output CSVs are saved to Godot's user:// data directory:
+
+OS
+Path
+Windows
+%APPDATA%\Godot\app_userdata\GodotSim\
+macOS
+~/Library/Application Support/Godot/app_userdata/GodotSim/
+Linux
+~/.local/share/godot/app_userdata/GodotSim/
+
+
+
+📊 Sample Results
+50-trial batch (N=50 agents, μ=0.8):
+
+Metric
+
+1) Avg Wait Time
+GodotSim: Matches theoretical
+SimPy: Matches theoretical
+2) Avg System Time
+GodotSim: Matches theoretical
+SimPy: Matches theoretical
+3)  Runtime (ms)
+GodotSim: Slightly higher (animation overhead)
+SimPy: Faster (text-only)
+4) Visual Output
+GodotSim: ✅ Animated
+SimPy: ❌ None
+
+
+GodotSim produces statistically equivalent results to SimPy across 200-trial experiments, with modest additional runtime due to animation rendering — a justified trade-off for interpretability.
+
+
+🔬 Simulation Parameters
+The M/M/1 model uses:
+
+Symbol
+Meaning
+Default
+λ (Lambda)
+Arrival rate (agents/sec)
+1.0
+μ (Mu)
+Service rate (agents/sec)
+0.8
+ρ (Rho)
+Server utilisation = λ/μ
+1.25
+
+
+Interarrival and service times are sampled from exponential distributions using the PCG random generator (via SimSharp).
+
+
+🗺️ Roadmap
+M/M/c multi-server queues — extend SimSharpEngine to support multiple Resource instances
+Priority queues and reneging — add customer classes and timeout-based abandonment
+Live in-simulation dashboard — real-time Godot UI charts (wait time, utilisation) during playback
+3D environment — upgrade from 2D sprites to Godot spatial nodes (hospital, airport, factory models)
+VR support — OpenXR plugin integration for immersive simulation walkthroughs
+IoT / live data — connect to real-world data streams for digital twin scenarios
+
+
+📄 Academic Context
+This project was submitted as an MSc dissertation at the University of Surrey (Faculty of Arts and Social Sciences) in September 2025. The research questions addressed:
+
+Can a game engine serve as a viable real-time visualisation layer for DES?
+Does animation overhead meaningfully degrade simulation performance?
+What is the pedagogical and practical value of visual DES for non-technical users?
+
+Key finding: Yes — with a design-science methodology and source-level integration, Godot can host a fully functional, visually immersive DES with competitive performance.
+
+
+📜 Licences
+GodotSim scripts (scripts/) — © 2025 Deepanshu Singh. All rights reserved. (MIT Licence)
+SimSharp — MIT Licence (HEAL Research Group, University of Innsbruck)
+Priority Queue implementation — see SimSharp/Collections/LICENSE-PriortyQueue.txt
+PCG Random — see SimSharp/Random/LICENSE-PCG.txt
+
+
+🙏 Acknowledgements
+Dr. Wolfgang Garn — Project Supervisor, University of Surrey
+SimSharp — HEAL Research Group
+Godot Engine — MIT-licensed open-source game engine
+
+
+📬 Contact
+Deepanshu Singh
+MSc Business Analytics, University of Surrey
+https://www.linkedin.com/in/deepanshu-singh-1342b9168/ | https://github.com/deepanshu2singh
+
